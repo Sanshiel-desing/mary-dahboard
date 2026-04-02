@@ -10,6 +10,39 @@ import json, os
 from datetime import datetime
 import streamlit.components.v1 as components
 
+# ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
+SUPABASE_URL = "https://dcidmhgpnffridlywlpv.supabase.co"
+SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "sb_publishable_4AQimobjhf3-aRapF8a4PQ_9xArJvRY")
+USER_ID      = "usuario_dashboard"
+
+def sb_headers():
+    return {
+        "apikey": SUPABASE_KEY,
+        "Authorization": f"Bearer {SUPABASE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates"
+    }
+
+def sb_get(key):
+    try:
+        r = requests.get(
+            f"{SUPABASE_URL}/rest/v1/dashboard_data?user_id=eq.{USER_ID}&data_key=eq.{key}&select=data_value",
+            headers=sb_headers(), timeout=10
+        )
+        if r.status_code == 200 and r.json():
+            return r.json()[0]["data_value"]
+        return None
+    except: return None
+
+def sb_set(key, value):
+    try:
+        requests.post(
+            f"{SUPABASE_URL}/rest/v1/dashboard_data",
+            headers=sb_headers(), timeout=10,
+            json={"user_id": USER_ID, "data_key": key, "data_value": value}
+        )
+    except: pass
+
 st.set_page_config(page_title="Finanzas Argentina", page_icon="AR", layout="wide")
 
 BILLETERAS = [
@@ -41,16 +74,15 @@ SUELDO_1 = 0
 SUELDO_2 = 0
 CATEGORIAS_GASTO = ["Mercado / supermercado","Transporte","Gym / Salud","Entretenimiento","Servicios digitales","Ahorro","Otros"]
 
-# ─── PERSISTENCIA ─────────────────────────────────────────────────────────────
+# ─── PERSISTENCIA SUPABASE ────────────────────────────────────────────────────
 def cargar_json(f):
-    if os.path.exists(f):
-        try:
-            with open(f,"r",encoding="utf-8") as fp: return json.load(fp)
-        except: return {}
-    return {}
+    key = f.replace(".json","")
+    data = sb_get(key)
+    return data if data else {}
 
 def guardar_json(f, data):
-    with open(f,"w",encoding="utf-8") as fp: json.dump(data,fp,ensure_ascii=False,indent=2)
+    key = f.replace(".json","")
+    sb_set(key, data)
 
 cargar_gastos    = lambda: cargar_json(GASTOS_FILE)
 guardar_gastos   = lambda d: guardar_json(GASTOS_FILE, d)
