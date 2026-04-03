@@ -15,33 +15,52 @@ SUPABASE_URL = "https://dcidmhgpnffridlywlpv.supabase.co"
 SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjaWRtaGdwbmZmcmlkbHl3bHB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNTMxOTEsImV4cCI6MjA5MDcyOTE5MX0.kh6a2PaO-FlIRMxB1iS8dNdLvor3DLY9WuzIT0MOXcY")
 USER_ID      = "usuario_dashboard"
 
-def sb_headers():
-    return {
+def sb_headers(upsert=False):
+    h = {
         "apikey": SUPABASE_KEY,
         "Authorization": f"Bearer {SUPABASE_KEY}",
         "Content-Type": "application/json",
-        "Prefer": "resolution=merge-duplicates"
     }
+    if upsert:
+        h["Prefer"] = "resolution=merge-duplicates"
+    return h
 
 def sb_get(key):
     try:
         r = requests.get(
             f"{SUPABASE_URL}/rest/v1/dashboard_data?user_id=eq.{USER_ID}&data_key=eq.{key}&select=data_value",
-            headers=sb_headers(), timeout=10
+            headers=sb_headers(), timeout=15
         )
         if r.status_code == 200 and r.json():
             return r.json()[0]["data_value"]
         return None
-    except: return None
+    except Exception as e:
+        st.warning(f"Error cargando datos: {e}")
+        return None
 
 def sb_set(key, value):
     try:
-        requests.post(
+        # Primero intentar update
+        r = requests.patch(
+            f"{SUPABASE_URL}/rest/v1/dashboard_data?user_id=eq.{USER_ID}&data_key=eq.{key}",
+            headers=sb_headers(), timeout=15,
+            json={"data_value": value, "updated_at": "now()"}
+        )
+        if r.status_code in [200, 204] and r.headers.get("content-range","0") != "*/0":
+            return True
+        # Si no existe, insertar
+        r2 = requests.post(
             f"{SUPABASE_URL}/rest/v1/dashboard_data",
-            headers=sb_headers(), timeout=10,
+            headers=sb_headers(upsert=True), timeout=15,
             json={"user_id": USER_ID, "data_key": key, "data_value": value}
         )
-    except: pass
+        if r2.status_code not in [200, 201]:
+            st.error(f"Error guardando: {r2.status_code} - {r2.text}")
+            return False
+        return True
+    except Exception as e:
+        st.error(f"Error de conexion: {e}")
+        return False
 
 st.set_page_config(page_title="Finanzas Argentina", page_icon="AR", layout="wide")
 
