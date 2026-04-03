@@ -12,7 +12,7 @@ import streamlit.components.v1 as components
 
 # ─── SUPABASE CONFIG ──────────────────────────────────────────────────────────
 SUPABASE_URL = "https://dcidmhgpnffridlywlpv.supabase.co"
-SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "sb_publishable_4AQimobjhf3-aRapF8a4PQ_9xArJvRY")
+SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRjaWRtaGdwbmZmcmlkbHl3bHB2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNTMxOTEsImV4cCI6MjA5MDcyOTE5MX0.kh6a2PaO-FlIRMxB1iS8dNdLvor3DLY9WuzIT0MOXcY")
 USER_ID      = "usuario_dashboard"
 
 def sb_headers():
